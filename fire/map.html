@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同窗全国分布地图</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei"}
+header{padding:22px;text-align:center;background:#165DFF;color:#fff}
+.form-wrap{max-width:720px;margin:24px auto;padding:20px;border:1px solid #eee;border-radius:10px}
+.row{display:flex;align-items:center;margin:14px 0;gap:12px}
+label{width:85px}
+input,select{flex:1;padding:9px;border:1px solid #dcdcdc;border-radius:5px}
+button{padding:10px 26px;background:#165DFF;color:#fff;border:none;border-radius:5px;cursor:pointer}
+#map{width:100%;height:74vh}
+.user-list{max-width:1200px;margin:20px auto;padding:15px}
+.tag{display:inline-block;padding:5px 12px;border:1px solid #e4e7ed;border-radius:20px;margin:5px 8px}
+</style>
+</head>
+<body>
+<header>
+<h2>毕业同窗奔赴各地分布图</h2>
+</header>
+
+<div class="form-wrap">
+<div class="row">
+<label>姓名</label>
+<input id="username" placeholder="填写姓名">
+</div>
+<div class="row">
+<label>省份</label>
+<select id="province"></select>
+</div>
+<div class="row">
+<label>城市</label>
+<select id="city"></select>
+</div>
+<div class="row">
+<label>区县(可选)</label>
+<select id="area"></select>
+</div>
+<div class="row">
+<label>上传头像</label>
+<input type="file" id="avatarFile" accept="image/*">
+</div>
+<div class="row">
+<label></label>
+<button onclick="submitUser()">提交信息</button>
+</div>
+<p style="color:#777;font-size:13px">提交后复制弹出内容发给管理员更新地图</p>
+</div>
+
+<div id="map"></div>
+<div class="user-list" id="listBox"></div>
+
+<script>
+// 省市县+对应经纬度精简库
+const areaData = [
+{"p":"北京市","c":[{"n":"北京市","lng":116.4053,"lat":39.9050}]},
+{"p":"天津市","c":[{"n":"天津市","lng":117.1993,"lat":39.0842}]},
+{"p":"上海市","c":[{"n":"上海市","lng":121.4737,"lat":31.2304}]},
+{"p":"重庆市","c":[{"n":"重庆市","lng":106.5516,"lat":29.5630}]},
+{"p":"河北省","c":[{"n":"石家庄市","lng":114.5089,"lat":38.0428},{"n":"唐山市","lng":118.1793,"lat":39.6351},{"n":"邯郸市","lng":114.4783,"lat":36.6177}]},
+{"p":"山西省","c":[{"n":"太原市","lng":112.5489,"lat":37.8706},{"n":"大同市","lng":113.2927,"lat":40.1233}]},
+{"p":"辽宁省","c":[{"n":"沈阳市","lng":123.4291,"lat":41.7907},{"n":"大连市","lng":121.6136,"lat":38.9140}]},
+{"p":"吉林省","c":[{"n":"长春市","lng":125.3380,"lat":43.8817}]},
+{"p":"黑龙江省","c":[{"n":"哈尔滨市","lng":126.6485,"lat":45.8084}]},
+{"p":"江苏省","c":[{"n":"南京市","lng":118.7878,"lat":32.0416},{"n":"苏州市","lng":120.6196,"lat":31.2990},{"n":"无锡市","lng":120.2990,"lat":31.5771},{"n":"徐州市","lng":117.1817,"lat":34.2631}]},
+{"p":"浙江省","c":[{"n":"杭州市","lng":120.1551,"lat":30.2741},{"n":"宁波市","lng":121.5503,"lat":29.8745}]},
+{"p":"安徽省","c":[{"n":"合肥市","lng":117.2827,"lat":31.8669}]},
+{"p":"福建省","c":[{"n":"福州市","lng":119.3063,"lat":26.0765},{"n":"厦门市","lng":118.0894,"lat":24.4798}]},
+{"p":"江西省","c":[{"n":"南昌市","lng":115.8578,"lat":28.6827}]},
+{"p":"山东省","c":[{"n":"济南市","lng":117.0098,"lat":36.6782},{"n":"青岛市","lng":120.3826,"lat":36.0611}]},
+{"p":"河南省","c":[{"n":"郑州市","lng":113.6254,"lat":34.7573}]},
+{"p":"湖北省","c":[{"n":"武汉市","lng":114.3055,"lat":30.5928}]},
+{"p":"湖南省","c":[{"n":"长沙市","lng":112.9388,"lat":28.2282}]},
+{"p":"广东省","c":[{"n":"广州市","lng":113.2644,"lat":23.1291},{"n":"深圳市","lng":114.0682,"lat":22.5362}]},
+{"p":"海南省","c":[{"n":"海口市","lng":110.3599,"lat":20.0323}]},
+{"p":"四川省","c":[{"n":"成都市","lng":104.0668,"lat":30.5728}]},
+{"p":"贵州省","c":[{"n":"贵阳市","lng":106.6302,"lat":26.6583}]},
+{"p":"云南省","c":[{"n":"昆明市","lng":102.7123,"lat":25.0406}]},
+{"p":"陕西省","c":[{"n":"西安市","lng":108.9398,"lat":34.2644}]},
+{"p":"甘肃省","c":[{"n":"兰州市","lng":103.8343,"lat":36.0611}]},
+{"p":"青海省","c":[{"n":"西宁市","lng":101.7802,"lat":36.6171}]},
+{"p":"台湾省","c":[{"n":"台北市","lng":121.5645,"lat":25.0330}]},
+{"p":"内蒙古","c":[{"n":"呼和浩特市","lng":111.7487,"lat":40.8183}]},
+{"p":"广西","c":[{"n":"南宁市","lng":108.3275,"lat":22.8281}]},
+{"p":"宁夏","c":[{"n":"银川市","lng":106.2772,"lat":38.4872}]},
+{"p":"新疆","c":[{"n":"乌鲁木齐市","lng":87.6177,"lat":43.8256}]},
+{"p":"西藏","c":[{"n":"拉萨市","lng":91.1175,"lat":29.6470}]},
+{"p":"香港","c":[{"n":"香港","lng":114.1747,"lat":22.2783}]},
+{"p":"澳门","c":[{"n":"澳门","lng":113.5491,"lat":22.1987}]}
+];
+
+const $p = document.getElementById('province');
+const $c = document.getElementById('city');
+const $a = document.getElementById('area');
+
+//初始化省份
+function initProvince(){
+areaData.forEach(item=>{
+let opt = document.createElement('option');
+opt.innerText=item.p;
+opt.value=item.p;
+$p.appendChild(opt);
+});
+bindCity();
+}
+
+//省份变更联动城市
+$p.onchange=bindCity;
+function bindCity(){
+$c.innerHTML='';
+let pVal = $p.value;
+let pd = areaData.find(v=>v.p===pVal);
+if(!pd)return;
+pd.c.forEach(ci=>{
+let opt=document.createElement('option');
+opt.innerText=ci.n;
+opt.value=JSON.stringify(ci);
+$c.appendChild(opt);
+});
+$a.innerHTML='<option>无需选择</option>';
+}
+
+//地图实例
+const chartDom=document.getElementById('map');
+const myChart=echarts.init(chartDom);
+let userList=[];
+
+//读取json数据渲染
+fetch('data.json').then(r=>r.json()).then(res=>{
+userList=res;
+renderMap();
+renderUserList();
+});
+
+function renderMap(){
+let scatterData = userList.map(u=>{
+return {
+name:u.name,
+city:u.city,
+value:[u.lng,u.lat],
+avatar:u.avatar
+}
+});
+let opt={
+tooltip:{
+trigger:'item',
+formatter:p=>{
+let d=p.data;
+return `<img src="${d.avatar}" width="55"/><br>${d.name} ｜ ${d.city}`
+}
+},
+geo:{
+map:'china',
+roam:true,
+zoom:1.2,
+label:{show:true,fontSize:9},
+itemStyle:{areaColor:'#f6f8fa',borderColor:'#ccd0d8'}
+},
+series:[{
+type:'scatter',
+coordinateSystem:'geo',
+symbolSize:52,
+data:scatterData,
+symbol:function(val){
+return `image://${val.avatar}`;
+}
+}]
+};
+myChart.setOption(opt);
+}
+
+function renderUserList(){
+let html='';
+userList.forEach(u=>{
+html+=`<span class="tag">${u.name} → ${u.city}</span>`;
+})
+document.getElementById('listBox').innerHTML=html;
+}
+
+//提交用户信息
+function submitUser(){
+let name = document.getElementById('username').value.trim();
+let cityRaw = $c.value;
+let file = document.getElementById('avatarFile').files[0];
+if(!name||!cityRaw||!file){
+alert('请填写姓名、选择城市并上传头像');
+return;
+}
+let cityObj = JSON.parse(cityRaw);
+let reader=new FileReader();
+reader.onload=e=>{
+let info={
+name:name,
+city:cityObj.n,
+lng:cityObj.lng,
+lat:cityObj.lat,
+avatar:e.target.result
+};
+alert("复制下方全部内容发给管理员：\n"+JSON.stringify(info));
+};
+reader.readAsDataURL(file);
+}
+
+window.addEventListener('resize',()=>myChart.resize());
+initProvince();
+</script>
+</body>
+</html>
