@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逻辑学章节练习题合集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-card{transition:0.3s}
+        .option-item{cursor:pointer;border:1px solid #e5e7eb}
+        .option-item:hover{background:#f3f4f6}
+        .option-selected{border-color:#3b82f6;background:#eff6ff}
+        .answer-correct{color:#16a34a}
+        .answer-wrong{color:#dc2626}
+        .card-num{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid #ddd;cursor:pointer;font-size:13px}
+        .num-done-correct{background:#22c55e;color:white;border-color:#22c55e}
+        .num-done-wrong{background:#ef4444;color:white;border-color:#ef4444}
+        .num-undone{background:#fff}
+        .chapter-btn{transition:0.2s}
+        .chapter-btn:hover{transform:scale(1.02)}
+        .ans-all-show{color:#9333ea;font-weight:bold}
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<!-- 首页章节选择 -->
+<div id="page-index" class="max-w-2xl mx-auto px-4 py-16">
+    <h1 class="text-3xl font-bold text-center mb-12 text-gray-800">逻辑学章节自测题库</h1>
+    <div class="flex flex-col gap-6">
+        <div onclick="openChapter(0)" class="chapter-btn cursor-pointer bg-white rounded-xl shadow p-6 border-l-4 border-blue-500">
+            <h2 class="text-xl font-semibold mb-2">1.概念的种类及关系</h2>
+            <p class="text-gray-500">共25道习题</p>
+        </div>
+        <div onclick="openChapter(1)" class="chapter-btn cursor-pointer bg-white rounded-xl shadow p-6 border-l-4 border-emerald-500">
+            <h2 class="text-xl font-semibold mb-2">2.性质命题及其真假判断</h2>
+            <p class="text-gray-500">共16道习题</p>
+        </div>
+        <div onclick="openChapter(2)" class="chapter-btn cursor-pointer bg-white rounded-xl shadow p-6 border-l-4 border-amber-500">
+            <h2 class="text-xl font-semibold mb-2">3.三段论的公理与规则</h2>
+            <p class="text-gray-500">共25道习题</p>
+        </div>
+    </div>
+</div>
+
+<!-- 刷题页面 -->
+<div id="page-exercise" class="hidden">
+<div class="flex flex-col lg:flex-row max-w-6xl mx-auto">
+    <!--左侧答题卡区域-->
+    <aside class="lg:w-72 w-full bg-white shadow p-5 lg:h-screen lg:sticky lg:top-0 overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">答题卡</h2>
+            <button onclick="backIndex()" class="text-blue-500 text-sm">返回章节</button>
+        </div>
+        <div id="answer-grid" class="grid grid-cols-5 gap-2 mb-6"></div>
+        <div class="border-t pt-4">
+            <div class="mb-2">总题数：<span id="total-count">0</span></div>
+            <div class="mb-2">已完成：<span id="done-count">0</span></div>
+            <div class="mb-2">正确题数：<span id="right-count">0</span></div>
+            <div class="mb-2">错误题数：<span id="error-count">0</span></div>
+            <div class="mb-2 font-bold">正确率：<span id="rate-text">0%</span></div>
+        </div>
+        <div id="error-info" class="mt-4 border-t pt-4 hidden">
+            <h3 class="font-bold mb-2">错题题号</h3>
+            <div id="error-list" class="text-red-500 text-sm"></div>
+        </div>
+        <button onclick="resetAll()" class="mt-5 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">本章全部重置重做</button>
+        <button id="toggleAllAnsBtn" onclick="toggleAllAnswer()" class="mt-3 w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600">显示全部答案</button>
+    </aside>
+    <!--右侧题目区域-->
+    <main class="flex-1 p-4 md:p-8">
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-10">
+            <h1 id="chapter-title" class="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">章节练习</h1>
+            <div id="questions-wrap"></div>
+            <div class="mt-10 text-center text-gray-500">做完所有题目可查看完整错题分布</div>
+        </div>
+    </main>
+</div>
+</div>
+
+<script>
+let showAllAnswer = false;
+const allChapters = [
+    {
+        title:"1.概念的种类及关系 自测练习",
+        list:[
+            {id:1,title:"1.<u>甲班学生</u>应该努力学习。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:2,title:"2.我们队的<u>学员</u>都是好样的。",opts:["A 集合概念","B 非集合概念"],ans:"A",user:""},
+            {id:3,title:"3.<u>人</u>贵有自知之明。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:4,title:"4.<u>教师</u>是人类灵魂的工程师。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:5,title:"5.我们要勇于参加社会<u>实践</u>。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:6,title:"6.我队<u>学员</u>来自全国各地。",opts:["A 集合概念","B 非集合概念"],ans:"A",user:""},
+            {id:7,title:"7.<u>实践</u>是检验真理的唯一标准。",opts:["A 集合概念","B 非集合概念"],ans:"A",user:""},
+            {id:8,title:'8."WTO"和"中国"，这两个概念是（）关系。',opts:["A 属种","B 反对","C 既非矛盾也非反对的不相容关系","D 矛盾","E 交叉"],ans:"C",user:""},
+            {id:9,title:"9.《祝福》是<u>鲁迅的作品</u>。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:10,title:"10.<u>中国人</u>死都不怕，还怕困难吗？",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:11,title:'11."人口不少于50万的城市"与"人口多于100万的城市"这两个概念具有的是（）关系。',opts:["A 全同","B 真包含","C 交叉","D 真包含于"],ans:"B",user:""},
+            {id:12,title:'12."数学家"和"天文学家"，这两个概念是（）关系。',opts:["A 反对、既非矛盾也非反对的不相容关系","B 交叉","C 矛盾","D 反对","E 属种"],ans:"B",user:""},
+            {id:13,title:'13."相容关系"和"交叉关系"，这两个概念是（）关系。',opts:["A 属种","B 矛盾","C 交叉","D 反对","E 既非矛盾也非反对的不相容关系"],ans:"A",user:""},
+            {id:14,title:"14.<u>人</u>定胜天。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:15,title:"15.<u>群众</u>的意见应当尊重。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:16,title:"16.<u>群众</u>是真正的英雄。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:17,title:"17.<u>鲁迅的作品</u>，不是一天能读完的。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+            {id:18,title:"18.爱美之心，<u>人</u>皆有之。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:19,title:"19.世间的一切事物中，<u>人</u>是第一个可宝贵的。",opts:["A 集合概念","B 非集合概念"],ans:"A",user:""},
+            {id:20,title:"20.他是<u>教师</u>。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:21,title:"21.小王是<u>甲班的学生</u>。",opts:["A 集合概念","B 非集合概念"],ans:"B",user:""},
+            {id:22,title:"22.<u>甲班的学生</u>来自全国各地。",opts:["A 集合概念","B 非集合概念"],ans:"A",user:""},
+            {id:23,title:"23.<u>中国人</u>不应该崇洋媚外。",opts:["A 非集合概念","B 集合概念"],ans:"A",user:""},
+            {id:24,title:"24.( )对于织物相当于彩陶对于( )",opts:["A 织机，图案","B 染料，彩绘","C 刺绣，陶器","D 丝绸，岩画"],ans:"C",user:""},
+            {id:25,title:"25.<u>昆虫</u>是地球上种类最多的动物。",opts:["A 非集合概念","B 集合概念"],ans:"B",user:""},
+        ]
+    },
+{
+    title:"2.性质命题及其真假判断 自测练习",
+    list:[
+        {id:1,title:"1.已知“基本粒子不都可分。”为真，则据此不能确定真假的命题是\n(1)所有的基本粒子都可分。\n(2)所有的基本粒子都不可分。\n(3)有的基本粒子可分。\n(4)有的基本粒子不可分。",opts:["A 仅(2)","B (2)和(3)","C (1)和(4)","D 仅(3)"],ans:"B",user:""},
+        {id:2,title:"2.所有答案都是错的。",opts:["A SEP","B SAP","C SOP","D SIP"],ans:"B",user:""},
+        {id:3,title:"3.有的同学家里住得很远。",opts:["A SIP","B SOP","C SEP","D SAP"],ans:"A",user:""},
+        {id:4,title:"4.有些工人是矿工。（多选）",opts:["A 主项不周延","B 谓项周延","C 主项周延","D 谓项不周延"],ans:"AD",user:""},
+        {id:5,title:"5.若S真包含P，则以S和P为主项和谓项构成的性质判断之间的真假情况是（多选）",opts:["A A真,I假","B I真,A假","C O真,E假","D I真,O真"],ans:"BCD",user:""},
+        {id:6,title:"6.人民群众是历史的创造者。（多选）",opts:["A 主项周延","B 谓项不周延","C 主项不周延","D 谓项周延"],ans:"AB",user:""},
+        {id:7,title:"7.在直言命题中，决定命题形式种类的是",opts:["A 主项和量项","B 谓项和量项","C 联项和量项","D 主项和谓项"],ans:"C",user:""},
+        {id:8,title:"8.当S和P具有（）关系时，SAP和SEP同假",opts:["A 真包含于","B 同一","C 真包含","D 交叉"],ans:"D",user:""},
+        {id:9,title:"9.有些动物不是用鳃呼吸的。（多选）",opts:["A 主项不周延","B 谓项周延","C 主项周延","D 谓项不周延"],ans:"AB",user:""},
+        {id:10,title:"10.下列各组判断中可以同假的是（多选）",opts:["A SAP与SOP","B SIP与SOP","C SAP与SEP","D SIP与SAP"],ans:"CD",user:""},
+        {id:11,title:"11.下列命题中，主项和谓项都不周延的是",opts:["A 有些被告是无罪的。","B 法律面前人人平等。","C 逻辑学不是哲学。","D 成就事业不是一件容易的事。"],ans:"A",user:""},
+        {id:12,title:"12.“没有一位有成就的科学家不是刻苦学习的”这个判断的逻辑形式是",opts:["A SAP","B SOP","C SIP","D SEP"],ans:"A",user:""},
+        {id:13,title:"13.自然科学不是上层建筑。（多选）",opts:["A 谓项不周延","B 主项不周延","C 主项周延","D 谓项周延"],ans:"CD",user:""},
+        {id:14,title:"14.我们班有些同学考试成绩是不理想的。",opts:["A SIP","B SAP","C SEP","D SOP"],ans:"A",user:""},
+        {id:15,title:"15.“凡法律都是有强制性的。”这一判断的逻辑常项是",opts:["A 法律","B 凡……都是","C 有强制性的","D 法律、有强制性的"],ans:"B",user:""},
+        {id:16,title:"16.这个班最高的同学是山东人。",opts:["A SIP","B SAP","C SEP","D SOP"],ans:"B",user:""},
+    ]
+},
+{
+    title:"3.三段论的公理与规则 自测练习",
+    list:[
+        {id:1,title:"1.以“有选举权的人都是年满18岁的人”作为大前提，若加上小前提（）（多选）",opts:["A“有选举权的人是国家公务员”可得出“有的国家公务员是年满18岁的人”","B“审判员都是年满18岁的人”可得出“审判员都是有选举权的人”","C“小学生不是年满18岁的人”可得出“小学生都不是有选举权的人”","D“少先队员不是有选举权的人”可得出“少先队员不是年满18岁的人”","E“人大代表都是有选举权的人”可得出“人大代表都是年满18岁的人”"],ans:"ACE",user:""},
+        {id:2,title:"2.“数学教师是教师，中学数学教师是教师”，所以，中学数学教师是数学教师”，这个三段论推理（）",opts:["A 犯了“中项不周延”的逻辑错误","B 犯了“小项扩大”的逻辑错误","C 犯了“四概念”的逻辑错误","D 有效"],ans:"A",user:""},
+        {id:3,title:"3.一个正确三段论，其小前提为MIS，则大前提可以是（）（多选）",opts:["A POM","B MAP","C MEP","D PEM","E PAM"],ans:"BCD",user:""},
+        {id:4,title:"4.“张某是这个法院的审判员，而这个法院有不少审判员是政法院校的毕业生”，所以张某是政法院校的毕业生。”这一三段论是（）",opts:["A 大项不当周延","B 中项不周延","C 四词项","D 小项不当周延"],ans:"B",user:""},
+        {id:5,title:"5.以PEM为大前提，MAS为小前提，则结论一定是（）",opts:["A SEP","B SOP","C SIP","D SAP"],ans:"B",user:""},
+        {id:6,title:"6.一个正确三段论的大前提是MIP，则其小前提一定是（）",opts:["A SAM","B MIS","C MAS","D SIM"],ans:"C",user:""},
+        {id:7,title:"7.一个有效的三段论的小、大、中项分别是S、P、M，且P在结论中周延，则该三段论的大前提不可能是（）（多选）",opts:["A MOP","B MAP","C PIM","D PAM","E POM"],ans:"BCE",user:""},
+        {id:8,title:"8.以“2既是偶数又是素数”为前提进行三段论推理，能必然推出（）",opts:["A 有素数是偶数","B 有素数不是偶数","C 偶数都是素数","D 有偶数不是素数"],ans:"A",user:""},
+        {id:9,title:"9.以MAP为大前提，SIP为结论的有效三段论，其小前提可以是（多选）",opts:["A SAM","B MIS","C SOM","D MAS","E SIM"],ans:"ABDE",user:""},
+        {id:10,title:"10.以PAM为大前提，MAS为小前提构成三段论，则结论一定是（）",opts:["A SIP","B SEP","C SAP","D SOP"],ans:"A",user:""},
+        {id:11,title:"11.下列关于三段论推理的说法中正确的有（多选）",opts:["A 中项在大、小前提中必须是同一概念","B 结论为全称命题则前提中没有特称命题","C 若结论为特称命题则前提之一必为特称命题","D 结论中周延的项在前提中也必须周延"],ans:"ABCD",user:""},
+        {id:12,title:"12.一个有效的三段论，若小前提为SOM，结论为SOP，则大前提一定是（）",opts:["A PAM","B MEP","C PEM","D MAP"],ans:"A",user:""},
+        {id:13,title:"13.根据三段论规则，从两个否定前提（）",opts:["A 只能得出SEP","B 只能得出SOP","C 得不出结论","D 不能得出否定的结论"],ans:"C",user:""},
+        {id:14,title:"14.如果以“有A是B，所有C是B”为前提进行三段论推理，那么（）",opts:["A 不能必然推出结论","B 能得出“有A是C”或者“有C是A”","C 只能得出“有C是A”","D 只能得出“有A是C”"],ans:"A",user:""},
+        {id:15,title:"15.对于小前提为SAM，结论为SEP的有效三段论，其大前提可以是（多选）",opts:["A MAP","B POM","C MEP","D PEM","E MOP"],ans:"CD",user:""},
+        {id:16,title:"16.对于大前提PAM，结论为SOP的正确三段论，其小前提可以是（多选）",opts:["A SOM","B SAM","C SEM","D MES","E MOS"],ans:"ACD",user:""},
+        {id:17,title:"17.对于小前提为SAM，结论为SEP的正确三段论，其大前提可以是（多选）",opts:["A MOP","B MEP","C MAP","D POM","E PEM"],ans:"BE",user:""},
+        {id:18,title:"18.根据“所有A不是B”和（）这两个前提进行三段论推理，可必然得出“所有C不是A”这一结论。",opts:["A 所有C是B","B 所有B是C","C 所有C不是B","D 有的C不是B"],ans:"A",user:""},
+        {id:19,title:"19.“参加这次会议的人不都是先进工作者，这些人都是参加这次会议的”，可见,这些人都不是先进工作者”，这个三段论的推理违反了（）的规则（多选）",opts:["A 前提之一特称则结论必特称","B 前提之一否定则结论必否定","C 中项必须至少周延一次","D 前提中不周延的项在结论中也不得周延","E 若结论否定则前提之一必否定"],ans:"AC",user:""},
+        {id:20,title:"20.“党员都应当遵纪守法，我不是党员”，所以我不应当遵纪守法”这一三段论推理（）",opts:["A 大项不当周延","B 中项不周延","C 有效","D 四词项"],ans:"A",user:""},
+        {id:21,title:"21.以MAP为大前提，以MIS为小前提，则结论一定是（）",opts:["A SEP","B SAP","C SIP","D SOP"],ans:"C",user:""},
+        {id:22,title:"22.若一个有效三段论的结论为SIP则其大、小前提的组合可以是（多选）",opts:["A MAP,SOM","B MAP,SIM","C PIM,MAS","D MIP,MAS","E MIP,MIS"],ans:"BCD",user:""},
+        {id:23,title:"23.一个正确三段论的小前提是SOM，则其大前提一定是（）",opts:["A MEP","B PAM","C PEM","D MAP"],ans:"B",user:""},
+        {id:24,title:"24.若一个有效三段论的结论为SOP，则其大、小前提的组合可以是（）",opts:["A PAM,MES","B MAP,SEM","C MOP,MIS","D PEM,SEM"],ans:"A",user:""},
+        {id:25,title:"25.以PIM为大前提、MAS为小前提构成三段论，则（）",opts:["A 能必然推出SAP","B 不能推出结论","C 能必然推出SOP","D 能必然推出SIP"],ans:"D",user:""},
+    ]
+}
+];
+
+let currentChapterIndex = 0;
+let questionList = [];
+
+function toggleAllAnswer(){
+    showAllAnswer = !showAllAnswer;
+    const btn = document.getElementById("toggleAllAnsBtn");
+    btn.innerText = showAllAnswer ? "隐藏全部答案" : "显示全部答案";
+    render();
+}
+
+function openChapter(idx){
+    currentChapterIndex = idx;
+    questionList = JSON.parse(JSON.stringify(allChapters[idx].list));
+    showAllAnswer = false;
+    document.getElementById("toggleAllAnsBtn").innerText = "显示全部答案";
+    document.getElementById("chapter-title").innerText = allChapters[idx].title;
+    document.getElementById("page-index").classList.add("hidden");
+    document.getElementById("page-exercise").classList.remove("hidden");
+    render();
+}
+
+function backIndex(){
+    document.getElementById("page-exercise").classList.add("hidden");
+    document.getElementById("page-index").classList.remove("hidden");
+}
+
+const wrapDom = document.getElementById("questions-wrap");
+const gridDom = document.getElementById("answer-grid");
+
+function render(){
+    renderQuestion();
+    renderAnswerCard();
+    computeStat();
+}
+
+function checkAnswerFinish(userStr, ansStr){
+    let userSort = userStr.split("").sort().join("");
+    let ansSort = ansStr.split("").sort().join("");
+    return userSort === ansSort;
+}
+
+function renderQuestion(){
+    wrapDom.innerHTML = "";
+    questionList.forEach((item,index)=>{
+        const div = document.createElement("div");
+        div.className = "question-card border rounded-lg p-5 mb-6";
+        div.id="q-"+index;
+        let optHtml = "";
+        item.opts.forEach((opt,optIdx)=>{
+            const optVal = opt.charAt(0);
+            let cls = "option-item rounded px-4 py-2 my-2 block";
+            if(item.user && item.user.includes(optVal)) cls += " option-selected";
+            optHtml += `<div class="${cls}" data-q="${index}" data-val="${optVal}">${opt}</div>`;
+        })
+        let ansTip = "";
+        //单选选完立即判定，多选必须凑齐正确组合才判定
+        if(item.user){
+            const isMulti = item.ans.length > 1;
+            if(!isMulti){
+                let isRight = item.user === item.ans;
+                ansTip = isRight 
+                    ? `<div class="mt-4 answer-correct">✅回答正确，标准答案：${item.ans}</div>`
+                    : `<div class="mt-4 answer-wrong">❌回答错误，标准答案：${item.ans}</div>`;
+            }else{
+                //多选选满正确数量再判断
+                if(item.user.length === item.ans.length){
+                    let isRight = checkAnswerFinish(item.user, item.ans);
+                    ansTip = isRight 
+                        ? `<div class="mt-4 answer-correct">✅回答正确，标准答案：${item.ans}</div>`
+                        : `<div class="mt-4 answer-wrong">❌回答错误，标准答案：${item.ans}</div>`;
+                }
+            }
+        }
+        let allAnsTip = showAllAnswer ? `<div class="mt-3 ans-all-show">本题标准答案：${item.ans}</div>` : "";
+        div.innerHTML = `
+            <div class="font-semibold text-lg mb-3 whitespace-pre-wrap">${item.title}</div>
+            <div class="opts-area">${optHtml}</div>
+            ${ansTip}${allAnsTip}
+        `;
+        wrapDom.appendChild(div);
+    })
+    bindClick();
+}
+
+function renderAnswerCard(){
+    gridDom.innerHTML = "";
+    questionList.forEach((item,idx)=>{
+        let cls="card-num num-undone";
+        if(item.user){
+            let judged = false;
+            let isRight = false;
+            if(item.ans.length > 1){
+                if(item.user.length === item.ans.length){
+                    judged = true;
+                    isRight = checkAnswerFinish(item.user, item.ans);
+                }
+            }else{
+                judged = true;
+                isRight = item.user === item.ans;
+            }
+            if(judged){
+                cls = isRight ? "card-num num-done-correct" : "card-num num-done-wrong";
+            }
+        }
+        const span=document.createElement("div");
+        span.className=cls;
+        span.innerText=idx+1;
+        span.onclick=()=>document.getElementById("q-"+idx).scrollIntoView({behavior:'smooth'});
+        gridDom.appendChild(span);
+    })
+}
+
+function computeStat(){
+    let done=0,right=0,error=0;
+    let errorArr=[];
+    questionList.forEach((v,i)=>{
+        if(v.user){
+            let judged = false;
+            let isRight = false;
+            if(v.ans.length > 1){
+                if(v.user.length === v.ans.length){
+                    judged = true;
+                    isRight = checkAnswerFinish(v.user, v.ans);
+                }
+            }else{
+                judged = true;
+                isRight = v.user === v.ans;
+            }
+            if(judged){
+                done++;
+                isRight ? right++ : (error++, errorArr.push(i+1));
+            }
+        }
+    })
+    document.getElementById("total-count").innerText=questionList.length;
+    document.getElementById("done-count").innerText=done;
+    document.getElementById("right-count").innerText=right;
+    document.getElementById("error-count").innerText=error;
+    let rate= done===0 ? 0 : ((right/done)*100).toFixed(1);
+    document.getElementById("rate-text").innerText=rate+"%";
+
+    if(done===questionList.length){
+        document.getElementById("error-info").classList.remove("hidden");
+        document.getElementById("error-list").innerText= errorArr.length>0 ? errorArr.join("、") : "暂无错题";
+    }else{
+        document.getElementById("error-info").classList.add("hidden");
+    }
+}
+
+function bindClick(){
+    document.querySelectorAll(".option-item").forEach(el=>{
+        el.onclick = function(){
+            const qIdx = Number(this.dataset.q);
+            const val = this.dataset.val;
+            const targetItem = questionList[qIdx];
+            if(targetItem.ans.length > 1){
+                if(!targetItem.user) targetItem.user = val;
+                else if(targetItem.user.includes(val)){
+                    targetItem.user = targetItem.user.replace(val,"");
+                }else{
+                    targetItem.user += val;
+                }
+            }else{
+                targetItem.user = val;
+            }
+            render();
+        }
+    })
+}
+
+function resetAll(){
+    questionList.forEach(item=>item.user="");
+    showAllAnswer = false;
+    document.getElementById("toggleAllAnsBtn").innerText = "显示全部答案";
+    render();
+}
+</script>
+</body>
+</html>
